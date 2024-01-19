@@ -59,36 +59,48 @@ import { TogetherAI } from "@langchain/community/llms/togetherai"
 import { RetrievalQAChain } from "langchain/chains";
 
 import { Hono } from "hono";
-import { bearerAuth } from 'hono/bearer-auth'
+import { cors } from 'hono/cors';
+import { bearerAuth } from 'hono/bearer-auth';
+
 const app = new Hono();
-const token = 'yourmom';
+
+import { Pinecone } from "@pinecone-database/pinecone";
+import { PineconeStore } from "langchain/vectorstores/pinecone";
+import { JSONObject } from "hono/utils/types";
+ 
 
 export interface Env {
   VECTORIZE_INDEX: VectorizeIndex;
   AI: Fetcher;
+  TOKEN: string;
 }
 
 type Environment = {
   readonly MY_QUEUE: Queue;
 };
 
+type AIResponse = {
+  vector?: JSONObject;
+  query?: JSONObject;
+};
+
+const token = 'yourmom';
 const embed_model = "openai/text-embedding-ada-002";
 
 app.use('/input/*', bearerAuth({ token }));
+app.use('/*', cors({
+    origin: '*',
+    allowHeaders: ['*'],
+    allowMethods: ['POST', 'GET', 'OPTIONS'],
+    exposeHeaders: ['Content-Length', 'X-Kuma-Revision'],
+    maxAge: 6000,
+    credentials: false,
+  }));
 
 app.get('/', async (c) => {
-  const query = c.req.query('q');
-
-  // const loader = new CheerioWebBaseLoader(
-  //     "https://en.wikipedia.org/wiki/Brooklyn"
-  // );
-  // const docs = await loader.loadAndSplit();
-  // console.log(docs);
-
-  // const embeddings = new CloudflareWorkersAIEmbeddings({
-  //   binding: c.env.AI,
-  //   modelName: embed_model,
-  // });
+  const query = c.req.query('query');
+  const vector = c.req.query('vectors');
+  const llm = c.req.query('llm');
 
   const embeddings = new OpenAIEmbeddings({
     openAIApiKey: c.env.OPENAI_API_KEY, // In Node.js defaults to process.env.OPENAI_API_KEY
@@ -99,24 +111,34 @@ app.get('/', async (c) => {
     index: c.env.VECTORIZE_INDEX,
   });
 
-  const model = new TogetherAI({
-    apiKey: c.env.TOGETHERAI_API_KEY,
-    //modelName: "mistralai/Mixtral-8x7B-Instruct-v0.1",
-    modelName: "togethercomputer/llama-2-70b-chat",
-    temperature: 0.5,
-
-  });
-
-  const chain = RetrievalQAChain.fromLLM(model, store.asRetriever());
-
-  const res = await chain.invoke({
+  const response: AIResponse = {};
+  if (llm === 'true') {
+    const model = new TogetherAI({
+      apiKey: c.env.TOGETHERAI_API_KEY,
+      modelName: "mistralai/Mixtral-8x7B-Instruct-v0.1",
+      //modelName: "togethercomputer/llama-2-70b-chat",
+      temperature: 0.1,
+      maxTokens: 2048,
+      
+    });
+    // RetrievalQAChain 
+    const chain = RetrievalQAChain.fromLLM(model, store.asRetriever(), {
+      k: 2,
+      returnSourceDocuments: true,
+    });
+    
+    const res = await chain.invoke({
       query: query,
-  });
+    });
+    
+    response.query = res.text;
+  }
 
-  console.log(res.text);
+  if (vector === 'true') {
+    response.vector = await store.similaritySearch(query);
+  }
 
-  return c.text(res.text);
-
+  return c.json(response);
 });
 
 
@@ -180,7 +202,7 @@ app.get('/vector', async (c) => {
   });
 
   // Load the docs into the vector store
-  const results = await store.similaritySearch(query, 20);
+  const results = await store.similaritySearch(query);
   console.log(results);
   return c.text(JSON.stringify(results));
 

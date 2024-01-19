@@ -9,7 +9,8 @@ binding = "AI"
 
 [[vectorize]]
 binding = "VECTORIZE_INDEX" # available within your Worker on env.VECTORIZE_INDEX
-index_name = "langchain-workers"
+#index_name = "langchain-workers"
+index_name = "patristics-paragraphs"
 
 #[[queues.producers]]
 #  queue = "embed"
