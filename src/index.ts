@@ -143,7 +143,7 @@ app.get("/", async (c) => {
 
   return c.json(response);
 });
-
+// / ##############################################
 app.post("/input", async (c) => {
   const data = await c.req.json();
 
@@ -182,8 +182,9 @@ app.post("/input", async (c) => {
 
 app.get("/emoji", async (c) => {
   const query: string = c.req.query("query");
-  const temp: number = c.req.query("temp") || 0.7;
-  const llm: string = c.req.query("model") || "WizardLM/WizardLM-13B-V1.2";
+  const temp: number = c.req.query("temp") || 0.5;
+  const llm: string =
+    c.req.query("model") || "togethercomputer/llama-2-70b-chat";
 
   console.log(`query: ${query}`, `temp: ${temp} model: ${llm}`);
   // const embeddings = new OpenAIEmbeddings({
@@ -205,7 +206,7 @@ app.get("/emoji", async (c) => {
     });
 
     const prompt = PromptTemplate.fromTemplate(
-      `Respond only with a few unique emoji. Don't repeat them and say nothing else.: {question}`
+      `Describe the following with only a few unique emoji. Don't repeat them and say nothing else: {question}`
     );
     const runnable = prompt.pipe(model);
     const response = await runnable.invoke({ question: query });
@@ -242,58 +243,16 @@ app.get("/img", async (c) => {
   const res: any = await fetch(url);
   const blob = await res.arrayBuffer();
 
-  const ai = new Ai(env.AI);
+  const ai = new Ai(c.env.AI);
   const inputs = {
     image: [...new Uint8Array(blob)],
   };
 
-  const response = await ai.run("@cf/microsoft/resnet-50", inputs);
+  const response = await ai.run(llm, inputs);
+  console.log(response.status);
 
   const r = new Response(JSON.stringify({ inputs: { image: [] }, response }));
-  return c.json(r);
+  return r;
 });
 
 export default app;
-
-// export default {
-//   async fetch(request: Request, env: Env) {
-//     const { pathname } = new URL(request.url);
-//     const embeddings = new CloudflareWorkersAIEmbeddings({
-//       binding: env.AI,
-//       modelName: "@cf/baai/bge-large-en-v1.5",
-//     });
-//     const store = new CloudflareVectorizeStore(embeddings, {
-//       index: env.VECTORIZE_INDEX,
-//     });
-//     if (pathname === "/") {
-//       const results = await store.similaritySearch("hello", 5);
-//       return Response.json(results);
-//     } else if (pathname === "/load") {
-//       // Upsertion by id is supported
-//       await store.addDocuments(
-// [
-//   {
-//     pageContent: "hello",
-//     metadata: {},
-//   },
-//   {
-//     pageContent: "world",
-//     metadata: {},
-//   },
-//   {
-//     pageContent: "hi",
-//     metadata: {},
-//   },
-// ],
-// { ids: ["id1", "id2", "id3"] }
-//       );
-
-//       return Response.json({ success: true });
-//     } else if (pathname === "/clear") {
-//       await store.delete({ ids: ["id1", "id2", "id3"] });
-//       return Response.json({ success: true });
-//     }
-
-//     return Response.json({ error: "Not Found" }, { status: 404 });
-//   },
-// };
