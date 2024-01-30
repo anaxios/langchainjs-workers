@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { bearerAuth } from "hono/bearer-auth";
-import api from "./api/index";
+import api from "./routes/api/index";
+import landing from "./routes/app/index";
+import chat from "./routes/app/chat";
 
 const app = new Hono();
 
@@ -17,10 +19,8 @@ app.use(
   })
 );
 
-app.get("/", (c) => {
-  return c.text("Hello World!");
-});
-
+app.route("/", landing);
 app.route("/api", api);
+app.route("/chat", chat);
 
 export default app;
