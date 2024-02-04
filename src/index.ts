@@ -4,6 +4,7 @@ import { bearerAuth } from "hono/bearer-auth";
 import api from "./routes/api/index";
 import landing from "./routes/app/index";
 import chat from "./routes/app/chat";
+import calendar from "./routes/app/calendar";
 
 const app = new Hono();
 
@@ -22,5 +23,6 @@ app.use(
 app.route("/", landing);
 app.route("/api", api);
 app.route("/chat", chat);
+app.route("/calendar", calendar);
 
 export default app;

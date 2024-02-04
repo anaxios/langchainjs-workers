@@ -2,9 +2,11 @@ import { html } from "hono/html";
 import { HtmlEscapedString } from "hono/utils/html";
 
 export default function landing({
+  navbar,
   title,
   contents,
 }: {
+  navbar: HtmlEscapedString | Promise<HtmlEscapedString>;
   title: string;
   contents: HtmlEscapedString | Promise<HtmlEscapedString>;
 }) {
@@ -46,7 +48,8 @@ export default function landing({
         <title>${title}</title>
       </head>
       <body htmx-boost="true">
-        <h1>${title}</h1>
+        ${navbar}
+        <h1 class="text-4xl w-screen text-center">${title}</h1>
         ${contents}
       </body>
     </html>

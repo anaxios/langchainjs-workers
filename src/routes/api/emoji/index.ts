@@ -37,7 +37,7 @@ app.get("/", async (c) => {
     });
 
     const prompt = PromptTemplate.fromTemplate(
-      `Describe the following with only a few emoji: {question}`
+      `Describe the following with a couple emoji: {question}`
     );
 
     const runnable = prompt.pipe(model);
